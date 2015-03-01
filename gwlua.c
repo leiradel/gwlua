@@ -368,23 +368,23 @@ typedef struct
   int     is_enabled;
   int     callback_ref;
 }
-timer_t;
+gwtimer_t;
 
-static timer_t* timer_check( lua_State* L, int index )
+static gwtimer_t* timer_check( lua_State* L, int index )
 {
-  return (timer_t*)luaL_checkudata( L, index, "timer" );
+  return (gwtimer_t*)luaL_checkudata( L, index, "timer" );
 }
 
 static int timer_gc( lua_State* L )
 {
-  timer_t* self = (timer_t*)lua_touserdata( L, 1 );
+  gwtimer_t* self = (gwtimer_t*)lua_touserdata( L, 1 );
   ref_destroy( L, &self->callback_ref );
   return 0;
 }
 
 static int timer_tick( lua_State* L )
 {
-  timer_t* self = timer_check( L, 1 );
+  gwtimer_t* self = timer_check( L, 1 );
   state_t* state = state_get( L );
   
   if ( self->is_enabled && state->now >= self->expiration && self->callback_ref != LUA_NOREF )
@@ -399,7 +399,7 @@ static int timer_tick( lua_State* L )
 
 static int timer_index( lua_State* L )
 {
-  timer_t* self = (timer_t*)lua_touserdata( L, 1 );
+  gwtimer_t* self = (gwtimer_t*)lua_touserdata( L, 1 );
   const char* key = luaL_checkstring( L, 2 );
 
   switch ( djb2( key ) )
@@ -423,7 +423,7 @@ static int timer_index( lua_State* L )
 
 static int timer_newindex( lua_State* L )
 {
-  timer_t* self = (timer_t*)lua_touserdata( L, 1 );
+  gwtimer_t* self = (gwtimer_t*)lua_touserdata( L, 1 );
   const char* key = luaL_checkstring( L, 2 );
 
   switch ( djb2( key ) )
@@ -456,7 +456,7 @@ static int timer_newindex( lua_State* L )
 
 static int timer_new( lua_State* L )
 {
-  timer_t* self = (timer_t*)lua_newuserdata( L, sizeof( timer_t ) );
+  gwtimer_t* self = (gwtimer_t*)lua_newuserdata( L, sizeof( gwtimer_t ) );
   
   self->is_enabled = 0;
   
@@ -683,7 +683,7 @@ static int randomize( lua_State* L )
   return 0;
 }
 
-static int random( lua_State* L )
+static int rnd( lua_State* L )
 {
   state_t* state = state_get( L );
   state->seed = 6364136223846793005ULL * state->seed + 1;
@@ -803,7 +803,7 @@ int gwlua_create( gwlua_state_t* state, const void* main, size_t size )
     { "array",         array_new },
     { "setBackground", bg_set },
     { "randomize",     randomize },
-    { "random",        random },
+    { "rnd",           rnd },
     { "now",           time_now },
     { "splitTime",     time_split },
     { NULL, NULL }
