@@ -86,6 +86,14 @@ static void dump_stack( lua_State* L )
 
 /*---------------------------------------------------------------------------*/
 
+static int traceback( lua_State* L )
+{
+  luaL_traceback( L, L, lua_tostring( L, -1 ), 1 );
+  return 1;
+}
+
+/*---------------------------------------------------------------------------*/
+
 typedef void* (*ud_checker)( lua_State*, int );
 
 static void* ref_create( lua_State* L, int index, int* ref, ud_checker checker, int empty_ok )
@@ -389,13 +397,13 @@ static int timer_tick( lua_State* L )
   
   if ( self->is_enabled && state->now >= self->expiration && self->callback_ref != LUA_NOREF )
   {
+    lua_pushcfunction( L, traceback );
     ref_get( L, self->callback_ref );
     lua_pushvalue( L, 1 );
     
-    if ( lua_pcall( state->L, 1, 0, 0 ) != LUA_OK )
+    if ( lua_pcall( L, 1, 0, -3 ) != LUA_OK )
     {
-      luaL_traceback( state->L, state->L, lua_tostring( state->L, -1 ), 1 );
-      fprintf( stderr, "%s", lua_tostring( state->L, -1 ) );
+      fprintf( stderr, "%s", lua_tostring( L, -1 ) );
     }
   }
   
@@ -729,15 +737,18 @@ static int time_split( lua_State* L )
 void gwlua_tick( gwlua_state_t* state, int64_t now )
 {
   state_t* s = (state_t*)state;
+  int top = lua_gettop( s->L );
   s->now = now;
   
+  lua_pushcfunction( s->L, traceback );
   ref_get( s->L, s->tick_ref );
   
-  if ( lua_pcall( s->L, 1, 0, 0 ) != LUA_OK )
+  if ( lua_pcall( s->L, 0, 0, -2 ) != LUA_OK )
   {
-    luaL_traceback( s->L, s->L, lua_tostring( s->L, -1 ), 1 );
     fprintf( stderr, "%s", lua_tostring( s->L, -1 ) );
   }
+  
+  lua_settop( s->L, top );
 }
 
 static const char* button_name( int button )
@@ -767,29 +778,39 @@ static const char* button_name( int button )
 void gwlua_button_down( gwlua_state_t* state, unsigned controller_ndx, int button )
 {
   state_t* s = (state_t*)state;
+  int top = lua_gettop( s->L );
+  
+  lua_pushcfunction( s->L, traceback );
+  
   ref_get( s->L, s->button_down_ref );
   lua_pushstring( s->L, button_name( button ) );
   lua_pushinteger( s->L, controller_ndx );
   
-  if ( lua_pcall( s->L, 2, 0, 0 ) != LUA_OK )
+  if ( lua_pcall( s->L, 2, 0, -4 ) != LUA_OK )
   {
-    luaL_traceback( s->L, s->L, lua_tostring( s->L, -1 ), 1 );
     fprintf( stderr, "%s", lua_tostring( s->L, -1 ) );
   }
+  
+  lua_settop( s->L, top );
 }
 
 void gwlua_button_up( gwlua_state_t* state, unsigned controller_ndx, int button )
 {
   state_t* s = (state_t*)state;
+  int top = lua_gettop( s->L );
+  
+  lua_pushcfunction( s->L, traceback );
+  
   ref_get( s->L, s->button_up_ref );
   lua_pushstring( s->L, button_name( button ) );
   lua_pushinteger( s->L, controller_ndx );
   
-  if ( lua_pcall( s->L, 2, 0, 0 ) != LUA_OK )
+  if ( lua_pcall( s->L, 2, 0, -4 ) != LUA_OK )
   {
-    luaL_traceback( s->L, s->L, lua_tostring( s->L, -1 ), 1 );
     fprintf( stderr, "%s", lua_tostring( s->L, -1 ) );
   }
+  
+  lua_settop( s->L, top );
 }
 
 /*---------------------------------------------------------------------------*/
@@ -823,7 +844,7 @@ int gwlua_create( gwlua_state_t* state, const void* main, size_t size )
     { "array",         array_new },
     { "setBackground", bg_set },
     { "randomize",     randomize },
-    { "rnd",           rnd },
+    { "random",        rnd },
     { "now",           time_now },
     { "splitTime",     time_split },
     { NULL, NULL }
@@ -847,20 +868,20 @@ int gwlua_create( gwlua_state_t* state, const void* main, size_t size )
     lua_setglobal( s->L, "gw" );
     
     lua_settop( s->L, top );
+    lua_pushcfunction( s->L, traceback );
     
     switch ( luaL_loadbufferx( s->L, (const char*)main, size, "main.lua", "t" ) )
     {
     case LUA_OK:
-      if ( lua_pcall( s->L, 0, 3, 0 ) == LUA_OK )
+      if ( lua_pcall( s->L, 0, 3, -2 ) == LUA_OK )
       {
-        ref_create( s->L, 1, &s->tick_ref, function_check, 0 );
-        ref_create( s->L, 2, &s->button_down_ref, function_check, 0 );
-        ref_create( s->L, 3, &s->button_up_ref, function_check, 0 );
+        ref_create( s->L, -3, &s->tick_ref, function_check, 0 );
+        ref_create( s->L, -2, &s->button_down_ref, function_check, 0 );
+        ref_create( s->L, -1, &s->button_up_ref, function_check, 0 );
         lua_settop( s->L, 0 );
         return 0;
       }
 
-      luaL_traceback( s->L, s->L, lua_tostring( s->L, -1 ), 1 );
       fprintf( stderr, "%s", lua_tostring( s->L, -1 ) );
       break;
       
