@@ -4,7 +4,7 @@ A middleware to write Game & Watch-like games in [Lua](http://www.lua.org/). Pro
 
 **gwlua** is a *middleware*, meaning it knows nothing about how sound is actually played and sprites blitted onto the screen. You have to provide functions to do that according to the platform you're targetting.
 
-For an working example of **gwlua**, see (gw-libretro)[https://github.com/libretro/gw-libretro].
+For an working example of **gwlua**, see [gw-libretro](https://github.com/libretro/gw-libretro).
 
 ## Usage
 
