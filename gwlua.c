@@ -392,10 +392,10 @@ static int timer_tick( lua_State* L )
     ref_get( L, self->callback_ref );
     lua_pushvalue( L, 1 );
     
-    if ( lua_pcall( s->L, 1, 0, 0 ) != LUA_OK )
+    if ( lua_pcall( state->L, 1, 0, 0 ) != LUA_OK )
     {
-      luaL_traceback( s->L, s->L, lua_tostring( s->L, -1 ), 1 );
-      fprintf( stderr, "%s", lua_tostring( s->L, -1 ) );
+      luaL_traceback( state->L, state->L, lua_tostring( state->L, -1 ), 1 );
+      fprintf( stderr, "%s", lua_tostring( state->L, -1 ) );
     }
   }
   
