@@ -904,7 +904,6 @@ int gwlua_create( gwlua_state_t* state, const void* main, size_t size )
   }
     
   lua_close( s->L );
-  gwlua_free( s );
   return -1;
 }
 
@@ -912,7 +911,6 @@ void gwlua_destroy( gwlua_state_t* state )
 {
   state_t* s = (state_t*)state;
   lua_close( s->L );
-  gwlua_free( s );
 }
 
 void gwlua_reset( gwlua_state_t* state )
