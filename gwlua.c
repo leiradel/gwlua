@@ -391,7 +391,12 @@ static int timer_tick( lua_State* L )
   {
     ref_get( L, self->callback_ref );
     lua_pushvalue( L, 1 );
-    lua_call( L, 1, 0 );
+    
+    if ( lua_pcall( s->L, 1, 0, 0 ) != LUA_OK )
+    {
+      luaL_traceback( s->L, s->L, lua_tostring( s->L, -1 ), 1 );
+      fprintf( stderr, "%s", lua_tostring( s->L, -1 ) );
+    }
   }
   
   return 0;
@@ -727,7 +732,12 @@ void gwlua_tick( gwlua_state_t* state, int64_t now )
   s->now = now;
   
   ref_get( s->L, s->tick_ref );
-  lua_call( s->L, 0, 0 );
+  
+  if ( lua_pcall( s->L, 1, 0, 0 ) != LUA_OK )
+  {
+    luaL_traceback( s->L, s->L, lua_tostring( s->L, -1 ), 1 );
+    fprintf( stderr, "%s", lua_tostring( s->L, -1 ) );
+  }
 }
 
 static const char* button_name( int button )
@@ -760,7 +770,12 @@ void gwlua_button_down( gwlua_state_t* state, unsigned controller_ndx, int butto
   ref_get( s->L, s->button_down_ref );
   lua_pushstring( s->L, button_name( button ) );
   lua_pushinteger( s->L, controller_ndx );
-  lua_call( s->L, 2, 0 );
+  
+  if ( lua_pcall( s->L, 2, 0, 0 ) != LUA_OK )
+  {
+    luaL_traceback( s->L, s->L, lua_tostring( s->L, -1 ), 1 );
+    fprintf( stderr, "%s", lua_tostring( s->L, -1 ) );
+  }
 }
 
 void gwlua_button_up( gwlua_state_t* state, unsigned controller_ndx, int button )
@@ -769,7 +784,12 @@ void gwlua_button_up( gwlua_state_t* state, unsigned controller_ndx, int button 
   ref_get( s->L, s->button_up_ref );
   lua_pushstring( s->L, button_name( button ) );
   lua_pushinteger( s->L, controller_ndx );
-  lua_call( s->L, 2, 0 );
+  
+  if ( lua_pcall( s->L, 2, 0, 0 ) != LUA_OK )
+  {
+    luaL_traceback( s->L, s->L, lua_tostring( s->L, -1 ), 1 );
+    fprintf( stderr, "%s", lua_tostring( s->L, -1 ) );
+  }
 }
 
 /*---------------------------------------------------------------------------*/
