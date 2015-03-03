@@ -383,7 +383,7 @@ static int sprite_new( lua_State* L )
   
   self->x = x;
   self->y = y;
-  self->is_visible = 0;
+  self->is_visible = 1;
   self->picture = ref_create( L, 3, &self->picture_ref, (ud_checker)picture_check, 1 );
   
   if ( luaL_newmetatable( L, "sprite" ) != 0 )
