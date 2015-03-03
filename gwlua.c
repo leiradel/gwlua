@@ -25,8 +25,14 @@ typedef struct
 }
 state_t;
 
+#ifdef NDEBUG
 void  lua_setstateud( lua_State* L, void* ud );
 void* lua_getstateud( lua_State* L );
+#else
+static void* s_ud = NULL;
+void  lua_setstateud( lua_State* L, void* ud ) { s_ud = ud; }
+void* lua_getstateud( lua_State* L ) { return s_ud; }
+#endif
 
 static state_t* state_get( lua_State* L )
 {
@@ -82,6 +88,36 @@ static void dump_stack( lua_State* L )
       break;
     }
   }
+}
+
+/*---------------------------------------------------------------------------*/
+
+static const char* str_int64( char* str_end, int64_t i64 )
+{
+  int neg = 0;
+  
+  if ( i64 < 0 )
+  {
+    neg = 1;
+    i64 = -i64;
+  }
+  
+  uint64_t u64 = (uint64_t)i64;
+  *--str_end = 0;
+  
+  do
+  {
+    *--str_end = u64 % 10 + '0';
+    u64 /= 10;
+  }
+  while ( u64 );
+  
+  if ( neg )
+  {
+    *--str_end = '-';
+  }
+  
+  return str_end;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -397,6 +433,8 @@ static int timer_tick( lua_State* L )
   
   if ( self->is_enabled && state->now >= self->expiration && self->callback_ref != LUA_NOREF )
   {
+    self->expiration = self->interval + state->now;
+    
     lua_pushcfunction( L, traceback );
     ref_get( L, self->callback_ref );
     lua_pushvalue( L, 1 );
@@ -418,7 +456,7 @@ static int timer_index( lua_State* L )
   switch ( djb2( key ) )
   {
   case 0x8c344f2aU: // interval
-    lua_pushinteger( L, self->interval );
+    lua_pushinteger( L, self->interval / 1000 );
     return 1;
   case 0x6a23e990U: // enabled
     lua_pushboolean( L, self->is_enabled );
@@ -467,6 +505,20 @@ static int timer_newindex( lua_State* L )
   return luaL_error( L, "%s not found in timer", key );
 }
 
+static int timer_tostring( lua_State* L )
+{
+  gwtimer_t* self = (gwtimer_t*)lua_touserdata( L, 1 );
+  
+  char buf1[ 128 ];
+  const char* interval = str_int64( buf1 + sizeof( buf1 ), self->interval );
+  
+  char buf2[ 128 ];
+  const char* expiration = str_int64( buf2 + sizeof( buf2 ), self->expiration );
+  
+  lua_pushfstring( L, "timer( interval=%s, expiration=%s, is_enabled=%s, callback_ref=%d )", interval, expiration, self->is_enabled ? "true" : "false", self->callback_ref );
+  return 1;
+}
+
 static int timer_new( lua_State* L )
 {
   gwtimer_t* self = (gwtimer_t*)lua_newuserdata( L, sizeof( gwtimer_t ) );
@@ -479,6 +531,7 @@ static int timer_new( lua_State* L )
     {
       { "__index",    timer_index },
       { "__newindex", timer_newindex },
+      { "__tostring", timer_tostring },
       { "__gc",       timer_gc },
       { NULL, NULL }
     };
@@ -869,6 +922,11 @@ int gwlua_create( gwlua_state_t* state, const void* main, size_t size )
     luaL_openlibs( s->L );
     luaL_newlib( s->L, statics );
     lua_setglobal( s->L, "gw" );
+    
+#ifndef NDEBUG
+    lua_pushboolean( s->L, 1 );
+    lua_setglobal( s->L, "_DEBUG" );
+#endif
     
     lua_settop( s->L, top );
     lua_pushcfunction( s->L, traceback );
