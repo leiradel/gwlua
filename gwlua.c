@@ -729,7 +729,10 @@ static int time_split( lua_State* L )
   lua_pushinteger( L, tm->tm_min );
   lua_pushinteger( L, tm->tm_sec );
   lua_pushinteger( L, 0 );
-  return 4;
+  lua_pushinteger( L, tm->tm_mday );
+  lua_pushinteger( L, tm->tm_mon + 1 );
+  lua_pushinteger( L, tm->tm_year + 1900 );
+  return 7;
 }
 
 // ----------------------------------------------------------------------------
