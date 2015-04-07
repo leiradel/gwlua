@@ -1,3 +1,5 @@
+# gwlua now only exists as part of [gw-libretro](https://github.com/libretro/gw-libretro)
+
 # gwlua
 
 A middleware to write Game & Watch-like games in [Lua](http://www.lua.org/). Provides pictures, sprites, timers and sounds.
